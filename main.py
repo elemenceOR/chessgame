@@ -13,7 +13,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 225)
 GRAY = (128, 128, 128)
 
-WIDTH, HEIGHT = 480, 520
+WIDTH, HEIGHT = 480, 560
 SQUARE = WIDTH // 8
 FPS = 60
 
@@ -88,12 +88,16 @@ class ChessEngine():
         self.selected_sqr = None
         self.game_over = False
         self.font = pygame.font.Font(None, 36)
-        self.reset_button = Button(WIDTH // 4, HEIGHT - 30, WIDTH // 2, 20, "Reset Game", GRAY, BLACK)
+        self.reset_button = Button(WIDTH // 4, HEIGHT - 70, WIDTH // 2, 20, "Reset Game", GRAY, BLACK)
+        self.undo_button = Button(WIDTH // 4, HEIGHT - 40, WIDTH // 4 - 5, 20, "Undo", GRAY, BLACK)
+        self.redo_button = Button(WIDTH // 2 + 5, HEIGHT - 40, WIDTH // 4 - 5, 20, "Redo", GRAY, BLACK)
         self.promotion_menu = None
         self.pending_promotion_move = None
         self.illegal_move_sqr = None
         self.illegal_move_time = 0
         self.illegal_move_duration = 0.5
+        self.board_history = [chess.Board().fen()] 
+        self.current_position = 0
 
     def reset(self):
         self.board = chess.Board()
@@ -103,6 +107,33 @@ class ChessEngine():
         self.pending_promotion_move = None
         self.illegal_move_squares = None
         self.illegal_move_time = 0
+        self.board_history = [chess.Board().fen()]
+        self.current_position = 0
+
+    def undo_move(self):
+        if self.current_position > 0 and not self.promotion_menu:
+            self.current_position -= 1
+            self.board = chess.Board(self.board_history[self.current_position])
+            self.game_over = False
+            self.selected_sqr = None
+    
+    def redo_move(self):
+        if self.current_position + 1 < len(self.board_history) and not self.promotion_menu:
+            self.current_position += 1
+            self.board = chess.Board(self.board_history[self.current_position])
+            self.game_over = self.board.is_game_over()
+            self.selected_sqr = None
+    
+    def make_move(self, move):
+        if move in self.board.legal_moves:
+            self.board.push(move)
+            self.current_position += 1
+            self.board_history = self.board_history[:self.current_position]
+            self.board_history.append(self.board.fen())
+            if self.board.is_game_over():
+                self.game_over = True
+            return True
+        return False
 
     def is_promotion_move(self, from_square, to_square):
         legal_moves = [move for move in self.board.legal_moves 
@@ -171,11 +202,19 @@ class ChessEngine():
         if self.reset_button.is_clicked(pos):
             self.reset()
             return
+        
+        if self.undo_button.is_clicked(pos):
+            self.undo_move()
+            return
+        
+        if self.redo_button.is_clicked(pos):
+            self.redo_move()
+            return
 
         if self.game_over:
             return
 
-        if pos[1] >= HEIGHT - 40:
+        if pos[1] >= HEIGHT - 80:
             return
 
         if self.promotion_menu:
@@ -186,11 +225,9 @@ class ChessEngine():
                     self.pending_promotion_move.to_square,
                     promotion=chess.Piece.from_symbol(promotion_piece).piece_type
                 )
-                self.board.push(promotion_move)
-                if self.board.is_game_over():
-                    self.game_over = True
-                self.promotion_menu = None
-                self.pending_promotion_move = None
+                if self.make_move(promotion_move):
+                    self.promotion_menu = None
+                    self.pending_promotion_move = None
             return
 
         square = self.get_square_from_pos(pos)
@@ -200,21 +237,15 @@ class ChessEngine():
             if piece and piece.color == self.board.turn:
                 self.selected_sqr = square
         else:
-            print(f"Attempting move from {chess.square_name(self.selected_sqr)} to {chess.square_name(square)}")
-            
             if self.is_promotion_move(self.selected_sqr, square):
                 self.pending_promotion_move = chess.Move(self.selected_sqr, square)
                 self.promotion_menu = PromotionMenu(square, self.board.turn == chess.WHITE)
             else:
                 move = chess.Move(self.selected_sqr, square)
-                if move in self.board.legal_moves:
-                    self.board.push(move)
-                    if self.board.is_game_over():
-                        self.game_over = True
-                else:
+                print(self.board_history[-1])
+                if not self.make_move(move) and self.selected_sqr != square:
                     self.illegal_move_sqr = (self.selected_sqr, square)
                     self.illegal_move_time = time.time()
-                    print("Move is not legal")
             self.selected_sqr = None
 
     def draw(self):
@@ -223,6 +254,8 @@ class ChessEngine():
         self.draw_pieces()
         self.draw_game_state()
         self.reset_button.draw(screen)
+        self.undo_button.draw(screen)
+        self.redo_button.draw(screen)
         if self.promotion_menu:
             self.promotion_menu.draw(screen)
 
