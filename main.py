@@ -38,6 +38,22 @@ pieces_images = {
     'K':pygame.transform.scale(pygame.image.load(f"images/wK.png"), (SQUARE, SQUARE))
 }
                     
+class Button:
+    def __init__(self, x, y, width, height, text, color, text_color):
+        self.rect = pygame.Rect (x, y, width, height)
+        self.text = text
+        self.color = color
+        self.text_color = text_color
+        self.font = pygame.font.Font(None, 32)
+
+    def draw(self, surface):
+        pygame.draw.rect(surface, self.color, self.rect)
+        text_surface = self.font.render(self.text, True, self.text_color)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        surface.blit(text_surface, text_rect)
+
+    def is_clicked(self, pos):
+        return self.rect.collidepoint(pos)
 
 class PromotionMenu:
     def __init__(self, square, is_white):
@@ -98,6 +114,7 @@ class ChessEngine():
         self.illegal_move_duration = 0.5
         self.board_history = [chess.Board().fen()] 
         self.current_position = 0
+        self.last_move = None
 
     def reset(self):
         self.board = chess.Board()
@@ -130,6 +147,7 @@ class ChessEngine():
             self.current_position += 1
             self.board_history = self.board_history[:self.current_position]
             self.board_history.append(self.board.fen())
+            self.last_move = move
             if self.board.is_game_over():
                 self.game_over = True
             return True
@@ -180,6 +198,16 @@ class ChessEngine():
         king_square = self.board.king(self.board.turn)
         col, row = chess.square_file(king_square), 7 - chess.square_rank(king_square)
         
+        if self.last_move:
+            piece = self.board.piece_at(self.last_move.to_square)
+            piece_name = piece.symbol() if piece else ""
+            if piece_name == 'P' or piece_name =='p':
+                piece_name = ""
+            last_move_text = f"{piece_name}.{chess.square_name(self.last_move.from_square)}{chess.square_name(self.last_move.to_square)}"
+            last_move_surface = self.font.render(last_move_text, True, GRAY)
+            last_move_rect = last_move_surface.get_rect(topleft=(20, HEIGHT - 60))
+            screen.blit(last_move_surface, last_move_rect)
+
         if self.board.is_checkmate():
             pygame.draw.rect(screen, RED, pygame.Rect(col * SQUARE, row * SQUARE, SQUARE, SQUARE), 5)
             text = "Checkmate! " + ("Black" if self.board.turn == chess.WHITE else "White") + " wins!"
@@ -242,7 +270,6 @@ class ChessEngine():
                 self.promotion_menu = PromotionMenu(square, self.board.turn == chess.WHITE)
             else:
                 move = chess.Move(self.selected_sqr, square)
-                print(self.board_history[-1])
                 if not self.make_move(move) and self.selected_sqr != square:
                     self.illegal_move_sqr = (self.selected_sqr, square)
                     self.illegal_move_time = time.time()
@@ -258,23 +285,6 @@ class ChessEngine():
         self.redo_button.draw(screen)
         if self.promotion_menu:
             self.promotion_menu.draw(screen)
-
-class Button:
-    def __init__(self, x, y, width, height, text, color, text_color):
-        self.rect = pygame.Rect (x, y, width, height)
-        self.text = text
-        self.color = color
-        self.text_color = text_color
-        self.font = pygame.font.Font(None, 32)
-
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect)
-        text_surface = self.font.render(self.text, True, self.text_color)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)
-
-    def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)
 
 def main():
     game = ChessEngine()
