@@ -1,9 +1,7 @@
-+ add timer. 
-    - preferably 10mins countdown for both sided separatly. start when the move.
 + add resign method
 + improve notation display
     - add piece take (x)
     - add checkmate (#)
     - add castling (0-0-0, 0-0)
-+ add draw methode
++ add draw method
     - draw by repetition (once side has the same move as last 3 moves)
