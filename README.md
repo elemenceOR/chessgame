@@ -1,5 +1,7 @@
 # Python Chess Game with Pygame
 
+![image](https://github.com/user-attachments/assets/0c666410-d4d8-44ad-a211-9b1fa1bde735)
+
 A fully-featured chess game implementation using Python and Pygame, featuring a modern UI design, timer functionality, and complete chess rules enforcement.
 
 ## Features
