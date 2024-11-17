@@ -33,8 +33,8 @@ A fully-featured chess game implementation using Python and Pygame, featuring a 
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/yourusername/chess-game.git
-cd chess-game
+https://github.com/elemenceOR/chessgame.git
+cd chessgame
 ```
 
 2. Install the required packages:
@@ -54,7 +54,7 @@ Add piece images with the following naming convention:
 
 Run the game:
 ```bash
-python chess_game.py
+python main.py
 ```
 ### Controls
 - Click to select a piece and click again to move it
