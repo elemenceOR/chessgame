@@ -103,6 +103,95 @@ python main.py
 - ``PromotionMenu``: Pawn promotion interface
 - ``ChessTimer``: Chess clock implementation
 
+## UML
+```mermaid
+classDiagram
+    class ChessEngine {
+        -board: chess.Board
+        -selected_sqr: int
+        -game_over: bool
+        -font: pygame.font.Font
+        -buttons: Button[]
+        -promotion_menu: PromotionMenu
+        -pending_promotion_move: chess.Move
+        -illegal_move_sqr: tuple
+        -illegal_move_time: float
+        -board_history: string[]
+        -current_position: int
+        -last_move: chess.Move
+        -timer: ChessTimer
+        -game_started: bool
+        -highlighted_moves: chess.Move[]
+        -resigned: bool
+        -winner_by_resignation: bool
+        +__init__()
+        +draw_board()
+        +draw_pieces()
+        +draw_game_state()
+        +draw()
+        +reset()
+        +resign_game()
+        +undo_move()
+        +redo_move()
+        +make_move(move: chess.Move)
+        +is_promotion_move(from_square: int, to_square: int)
+        +get_square_from_pos(pos: tuple)
+        +handle_click(pos: tuple)
+    }
+
+    class Button {
+        -rect: pygame.Rect
+        -text: string
+        -color: tuple
+        -text_color: tuple
+        -hover: bool
+        -font: pygame.font.Font
+        +__init__(x: int, y: int, width: int, height: int, text: string, color: tuple, text_color: tuple)
+        +draw(surface: pygame.Surface)
+        +update_hover(pos: tuple)
+        +is_clicked(pos: tuple): bool
+    }
+
+    class PromotionMenu {
+        -square: int
+        -is_white: bool
+        -pieces: string[]
+        -rect: pygame.Rect
+        +__init__(square: int, is_white: bool)
+        +draw(screen: pygame.Surface)
+        +handle_click(pos: tuple): string
+    }
+
+    class ChessTimer {
+        -initial_time: float
+        -white_time: float
+        -black_time: float
+        -last_update: float
+        -running: bool
+        -current_player: bool
+        -font: pygame.font.Font
+        +__init__(initial_time_minutes: int)
+        +start()
+        +stop()
+        +reset()
+        +switch_player()
+        +update()
+        +is_time_up(): bool
+        +get_time_str(seconds: float): string
+        +draw(screen: pygame.Surface)
+    }
+
+    ChessEngine --> Button : has multiple
+    ChessEngine --> PromotionMenu : has optional
+    ChessEngine --> ChessTimer : has one
+    ChessEngine ..> chess.Board : uses
+    ChessEngine ..> pygame : uses
+    Button ..> pygame : uses
+    PromotionMenu ..> pygame : uses
+    ChessTimer ..> pygame : uses
+
+```
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
