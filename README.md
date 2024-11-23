@@ -33,7 +33,7 @@ A fully-featured chess game implementation using Python and Pygame, featuring a 
 1. Clone this repository:
 
 ```bash
-https://github.com/elemenceOR/chessgame.git
+git clone https://github.com/elemenceOR/chessgame.git
 cd chessgame
 ```
 
