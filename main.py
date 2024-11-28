@@ -16,6 +16,7 @@ BUTTON_COLOR = (70, 70, 70)       # Medium gray
 BUTTON_HOVER_COLOR = (90, 90, 90) # Lighter gray for hover
 BUTTON_TEXT = (230, 230, 230)     # Off-white text
 
+# Board Dimensions
 WIDTH, HEIGHT = 800, 700  
 BOARD_SIZE = 480         
 SQUARE = BOARD_SIZE // 8

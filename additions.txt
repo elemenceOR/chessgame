@@ -1,4 +1,3 @@
-+ add resign method
 + improve notation display
     - add piece take (x)
     - add checkmate (#)
