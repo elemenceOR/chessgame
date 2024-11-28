@@ -33,8 +33,8 @@ A fully-featured chess game implementation using Python and Pygame, featuring a 
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/yourusername/chess-game.git
-cd chess-game
+git clone https://github.com/elemenceOR/chessgame.git
+cd chessgame
 ```
 
 2. Install the required packages:
@@ -54,7 +54,7 @@ Add piece images with the following naming convention:
 
 Run the game:
 ```bash
-python chess_game.py
+python main.py
 ```
 ### Controls
 - Click to select a piece and click again to move it
@@ -103,10 +103,22 @@ python chess_game.py
 - ``PromotionMenu``: Pawn promotion interface
 - ``ChessTimer``: Chess clock implementation
 
+## UML
+![Untitled diagram-2024-11-22-124417](https://github.com/user-attachments/assets/068dadad-90f8-4aae-b3b2-d28dcf2e593d)
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first
 to discuss what you would like to change.
+
+## Future Work
+- Improve notation display
+    - add piece take (x)
+    - add checkmate (#)
+    - add castling (0-0-0, 0-0)
+- Add draw method
+    - draw by repetition (once side has the same move as last 3 moves)
+- .......
 
 ## License
 
