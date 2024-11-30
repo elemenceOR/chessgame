@@ -300,19 +300,44 @@ class ChessEngine():
         col, row = chess.square_file(king_square), 7 - chess.square_rank(king_square)
 
         if self.last_move:
+            notation = ""
+        
             from_file, from_rank = chess.square_file(self.last_move.from_square), chess.square_rank(self.last_move.from_square)
             to_file, to_rank = chess.square_file(self.last_move.to_square), chess.square_rank(self.last_move.to_square)
 
-            piece = self.board.piece_at(self.last_move.to_square)
-            piece_name = piece.symbol() if piece else ""
-            if piece_name == 'P' or piece_name =='p':
-                piece_name = ""
-            last_move_text = f"{piece_name}.{chess.square_name(self.last_move.from_square)}{chess.square_name(self.last_move.to_square)}"
-            last_move_surface = self.font.render(last_move_text, True, TEXT_COLOR)
-            last_move_rect = last_move_surface.get_rect(topleft=(WIDTH - 740, HEIGHT // 2 - 10))
+            if self.last_move.from_square == chess.E1:
+                if self.last_move.to_square == chess.G1:
+                    notation = "w.O-O"
+                elif self.last_move.to_square == chess.C1:
+                    notation = "w.O-O-O"
+                elif self.last_move.from_square == chess.E8:
+                    if self.last_move.to_square == chess.G8:
+                        notation = "b.O-O"
+                    elif self.last_move.to_square == chess.C8:
+                        notation = "b.O-O-O"
+            else:
+                piece = self.board.piece_at(self.last_move.to_square)
+                piece_name = piece.symbol().upper() if piece else ""
+                if piece_name == 'P':
+                    piece_name = ""
+
+            self.board.pop() 
+            was_capture = self.board.piece_at(self.last_move.to_square) is not None
+            self.board.push(self.last_move)  
+            print(was_capture)
+            capture_symbol = "x" if was_capture else ""
+
+            notation = f"{piece_name}{chess.square_name(self.last_move.from_square)}{capture_symbol}{chess.square_name(self.last_move.to_square)}"
+        
+            # Add checkmate or check symbol
+            if self.board.is_checkmate():
+                notation += "#"
+            elif self.board.is_check():
+                notation += "+"
+
+            last_move_surface = self.font.render(notation, True, TEXT_COLOR)
+            last_move_rect = last_move_surface.get_rect(topleft=(WIDTH - 760, HEIGHT // 2 - 10))
             screen.blit(last_move_surface, last_move_rect)
-
-
             pygame.draw.rect(
                 screen,
                 HIGHLIGHT_YELLOW,
@@ -345,10 +370,13 @@ class ChessEngine():
         elif self.timer.black_time <= 0:
             status_text = "White wins on time!"
         elif self.board.is_checkmate():
-            status_text = "Checkmate! " + ("Black" if self.board.turn == chess.WHITE else "White") + " wins!"
+            status_text = "0-1" if self.board.turn == chess.WHITE else "1-0"
             pygame.draw.rect(screen, HIGHLIGHT_RED, pygame.Rect(BOARD_OFFSET_X + col * SQUARE, BOARD_OFFSET_Y + (row) * SQUARE, SQUARE, SQUARE), 5)
         elif self.board.is_stalemate():
             status_text = "Stalemate"
+        elif self.board.is_variant_draw():
+            status_text = "1/2-1/2"
+            pygame.draw.rect(screen, HIGHLIGHT_RED, pygame.Rect(BOARD_OFFSET_X + col * SQUARE, BOARD_OFFSET_Y + (row) * SQUARE, SQUARE, SQUARE), 5)
         elif self.board.is_check():
             pygame.draw.rect(screen, HIGHLIGHT_YELLOW, pygame.Rect(BOARD_OFFSET_X + col * SQUARE, BOARD_OFFSET_Y + (row) * SQUARE, SQUARE, SQUARE), 5)
             return
