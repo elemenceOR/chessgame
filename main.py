@@ -310,21 +310,18 @@ class ChessEngine():
                     notation = "w.O-O"
                 elif self.last_move.to_square == chess.C1:
                     notation = "w.O-O-O"
-                elif self.last_move.from_square == chess.E8:
-                    if self.last_move.to_square == chess.G8:
-                        notation = "b.O-O"
-                    elif self.last_move.to_square == chess.C8:
-                        notation = "b.O-O-O"
+            elif self.last_move.from_square == chess.E8:
+                if self.last_move.to_square == chess.G8:
+                    notation = "b.O-O"
+                elif self.last_move.to_square == chess.C8:
+                    notation = "b.O-O-O"
             else:
                 piece = self.board.piece_at(self.last_move.to_square)
                 piece_name = piece.symbol().upper() if piece else ""
                 if piece_name == 'P':
                     piece_name = ""
 
-            self.board.pop() 
-            was_capture = self.board.piece_at(self.last_move.to_square) is not None
-            self.board.push(self.last_move)  
-            print(was_capture)
+            was_capture = self.board.is_capture(self.last_move)
             capture_symbol = "x" if was_capture else ""
 
             notation = f"{piece_name}{chess.square_name(self.last_move.from_square)}{capture_symbol}{chess.square_name(self.last_move.to_square)}"
