@@ -5,9 +5,9 @@
 A fully-featured chess game implementation using Python and Pygame, featuring a modern UI design, timer functionality, and complete chess rules enforcement.
 
 ## Features
+
 - Complete chess rules implementation using the python-chess library
 - Modern, clean user interface with a pleasing color scheme
-
 - Game features:
 
   - Move highlighting and legal move validation
@@ -18,7 +18,6 @@ A fully-featured chess game implementation using Python and Pygame, featuring a 
   - Chess timer (10 minutes per player. Can be changed)
   - Resignation option
   - Coordinate notation display
-
 - Visual feedback for:
 
   - Selected pieces
@@ -38,6 +37,7 @@ cd chessgame
 ```
 
 2. Install the required packages:
+
 ```bash
 pip install pygame python-chess
 ```
@@ -53,16 +53,22 @@ Add piece images with the following naming convention:
 ## Usage
 
 Run the game:
+
 ```bash
-python main.py
+python engine.py
 ```
+
+***agent.py is a test environment created to train a RL agent. still under construction***
+
 ### Controls
+
 - Click to select a piece and click again to move it
 - Use the "New Game" button to start a fresh game
 - Use "Undo" and "Redo" buttons to navigate through move history
 - Click "Resign" to forfeit the current game
 
 ### Game Interface
+
 - The game board is displayed in the center of the window
 - Chess coordinates are shown around the board (a-h, 1-8)
 - Player timers are displayed on the right side
@@ -71,6 +77,7 @@ python main.py
 - Game status messages appear at the top
 
 ## Features in Detail
+
 ### Timer System
 
 - Each player starts with 10 minutes
@@ -104,6 +111,7 @@ python main.py
 - ``ChessTimer``: Chess clock implementation
 
 ## UML
+
 ![Untitled diagram-2024-11-22-124417](https://github.com/user-attachments/assets/068dadad-90f8-4aae-b3b2-d28dcf2e593d)
 
 ## Contributing
@@ -112,12 +120,13 @@ Pull requests are welcome. For major changes, please open an issue first
 to discuss what you would like to change.
 
 ## Future Work
+
 - Improve notation display
-    - add piece take (x)
-    - add checkmate (#)
-    - add castling (0-0-0, 0-0)
+  - add piece take (x)
+  - add checkmate (#)
+  - add castling (0-0-0, 0-0)
 - Add draw method
-    - draw by repetition (once side has the same move as last 3 moves)
+  - draw by repetition (once side has the same move as last 3 moves)
 - .......
 
 ## License

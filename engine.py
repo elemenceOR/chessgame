@@ -4,21 +4,21 @@ import time
 
 pygame.init()
 
-# Modern color scheme
+# Color Constants
 DARK_SQUARE = (118, 150, 86)      # Darker green
 LIGHT_SQUARE = (238, 238, 210)    # Light beige
 BACKGROUND = (40, 40, 40)         # Dark gray background
-HIGHLIGHT_BLUE = (0, 0, 255)      # Seleceted Piece
+HIGHLIGHT_BLUE = (0, 0, 255)      # Selected Piece
 HIGHLIGHT_YELLOW = (255, 255, 0)  # Move, Check
-HIGHLIGHT_RED = (220, 80, 80)     # Checkmate, Illigal 
+HIGHLIGHT_RED = (220, 80, 80)     # Checkmate, Illegal
 TEXT_COLOR = (230, 230, 230)      # Off-white
 BUTTON_COLOR = (70, 70, 70)       # Medium gray
 BUTTON_HOVER_COLOR = (90, 90, 90) # Lighter gray for hover
 BUTTON_TEXT = (230, 230, 230)     # Off-white text
 
-# Board Dimensions
-WIDTH, HEIGHT = 800, 700  
-BOARD_SIZE = 480         
+# Display Constants
+WIDTH, HEIGHT = 800, 700
+BOARD_SIZE = 480
 SQUARE = BOARD_SIZE // 8
 BOARD_OFFSET_X = (WIDTH - BOARD_SIZE) // 2
 BOARD_OFFSET_Y = (HEIGHT - BOARD_SIZE) // 2
@@ -28,6 +28,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("ChessGame")
 clock = pygame.time.Clock()
 
+# Load and scale piece images
 pieces_images = {
     'p': pygame.transform.scale(pygame.image.load(f"images/p.png"), (SQUARE, SQUARE)),
     'r': pygame.transform.scale(pygame.image.load(f"images/r.png"), (SQUARE, SQUARE)),
@@ -44,6 +45,7 @@ pieces_images = {
 }
 
 class Button:
+    """Represents a clickable button in the UI."""
     def __init__(self, x, y, width, height, text, color, text_color):
         self.rect = pygame.Rect(x, y, width, height)
         self.text = text
@@ -67,26 +69,22 @@ class Button:
         return self.rect.collidepoint(pos)
 
 class PromotionMenu:
+    """Handles pawn promotion UI when a pawn reaches the final rank."""
     def __init__(self, square, is_white):
         self.square = square
         self.is_white = is_white
-        self.pieces = ['Q', 'R', 'N', 'B'] if is_white else ['q', 'r', 'n', 'b']
+        pieces = ['Q', 'R', 'N', 'B'] if is_white else ['q', 'r', 'n', 'b']
         
         menu_x = chess.square_file(square) * SQUARE + BOARD_OFFSET_X
-
-        if is_white:
-            menu_y = (7 - chess.square_rank(square)) * SQUARE + BOARD_OFFSET_Y
-            self.pieces = self.pieces
-        else:
-            menu_y = (7 - chess.square_rank(square)) * SQUARE + BOARD_OFFSET_Y - 3 * SQUARE
-            self.pieces = self.pieces[::-1]
+        menu_y = (7 - chess.square_rank(square)) * SQUARE + BOARD_OFFSET_Y
         
-        self.rect = pygame.Rect(
-            menu_x,
-            menu_y,
-            SQUARE,
-            SQUARE * 4
-        )
+        # Reverse piece order for black pawns promoting from rank 1
+        if not is_white:
+            menu_y -= 3 * SQUARE
+            pieces = pieces[::-1]
+        
+        self.pieces = pieces
+        self.rect = pygame.Rect(menu_x, menu_y, SQUARE, SQUARE * 4)
 
     def draw(self, screen):
         for i, piece in enumerate(self.pieces):
@@ -110,6 +108,7 @@ class PromotionMenu:
         return None
 
 class ChessTimer:
+    """Manages game timer for both players."""
     def __init__(self, initial_time_minutes=10):
             self.initial_time = initial_time_minutes * 60  
             self.white_time = self.initial_time
@@ -120,22 +119,27 @@ class ChessTimer:
             self.font = pygame.font.Font(None, 36)
 
     def start(self):
+        """Start the timer."""
         self.running = True
         self.last_update = time.time()
 
     def stop(self):
+        """Stop the timer."""
         self.running = False
 
     def reset(self):
+        """Reset the timer to initial time."""
         self.white_time = self.initial_time
         self.black_time = self.initial_time
         self.running = False
 
     def switch_player(self):
+        """Switch the active player's timer."""
         self.current_player = not self.current_player
         self.last_update = time.time()
 
     def update(self):
+        """Update the current player's remaining time."""
         if self.running:
             current_time = time.time()
             elapsed = current_time - self.last_update
@@ -146,14 +150,17 @@ class ChessTimer:
             self.last_update = current_time
 
     def is_time_up(self):
+        """Check if either player has run out of time."""
         return self.white_time <= 0 or self.black_time <= 0
 
     def get_time_str(self, seconds):
+        """Format seconds as MM:SS string."""
         minutes = int(seconds // 60)
         seconds = int(seconds % 60)
         return f"{minutes:02d}:{seconds:02d}"
 
     def draw(self, screen):
+        """Draw the timer display on screen."""
         # White's timer
         white_text = self.font.render(f"{self.get_time_str(max(0, self.white_time))}", True, TEXT_COLOR)
         screen.blit(white_text, (WIDTH - 120, BOARD_OFFSET_Y + 5))
@@ -162,13 +169,32 @@ class ChessTimer:
         black_text = self.font.render(f"{self.get_time_str(max(0, self.black_time))}", True, TEXT_COLOR)
         screen.blit(black_text, (WIDTH - 120, BOARD_OFFSET_Y + BOARD_SIZE - 35))
 
-class ChessEngine():
+class ChessEngine:
+    """Main chess game engine handling board state, moves, and UI rendering."""
     def __init__(self):
         self.board = chess.Board()
-        self.selected_sqr = None
+        self.selected_square = None
         self.game_over = False
         self.font = pygame.font.Font(None, 32)
         
+        self._init_buttons()
+        
+        self.promotion_menu = None
+        self.pending_promotion_move = None
+        self.illegal_move_squares = None
+        self.illegal_move_time = 0
+        self.illegal_move_duration = 0.5
+        self.board_history = [chess.Board().fen()]
+        self.current_position = 0
+        self.last_move = None
+        self.timer = ChessTimer()
+        self.game_started = False
+        self.highlighted_moves = []
+        self.resigned = False
+        self.winner_by_resignation = None
+    
+    def _init_buttons(self):
+        """Initialize UI buttons."""
         button_width = 120
         button_height = 35
         button_spacing = 20
@@ -218,12 +244,13 @@ class ChessEngine():
         
         self.promotion_menu = None
         self.pending_promotion_move = None
-        self.illegal_move_sqr = None
+        self.illegal_move_squares = None
         self.illegal_move_time = 0
         self.illegal_move_duration = 0.5
         self.board_history = [chess.Board().fen()]
         self.current_position = 0
         self.last_move = None
+        self.last_move_was_capture = False
         self.timer = ChessTimer()
         self.game_started = False
         self.highlighted_moves = []
@@ -231,6 +258,7 @@ class ChessEngine():
         self.winner_by_resignation = None
 
     def draw_board(self):
+        """Draw the chess board with squares and coordinates."""
         # Draw board background
         board_background = pygame.Rect(
             BOARD_OFFSET_X - 20,
@@ -269,16 +297,16 @@ class ChessEngine():
             y = BOARD_OFFSET_Y + i * SQUARE + SQUARE//2 - rank_label.get_height()//2
             screen.blit(rank_label, (BOARD_OFFSET_X - 20, y))
         
-        if self.selected_sqr is not None:
-            row, col = chess.square_rank(self.selected_sqr), chess.square_file(self.selected_sqr)
+        if self.selected_square is not None:
+            row, col = chess.square_rank(self.selected_square), chess.square_file(self.selected_square)
             pygame.draw.rect(screen, HIGHLIGHT_BLUE, pygame.Rect(BOARD_OFFSET_X + col * SQUARE, BOARD_OFFSET_Y + (7 - row) * SQUARE, SQUARE, SQUARE), 5)
 
-        if self.illegal_move_sqr and time.time() - self.illegal_move_time < self.illegal_move_duration:
-            for square in self.illegal_move_sqr:
+        if self.illegal_move_squares and time.time() - self.illegal_move_time < self.illegal_move_duration:
+            for square in self.illegal_move_squares:
                 row, col = chess.square_rank(square), chess.square_file(square)
                 pygame.draw.rect(screen, HIGHLIGHT_RED, pygame.Rect(BOARD_OFFSET_X + col * SQUARE, BOARD_OFFSET_Y + (7 - row) * SQUARE, SQUARE, SQUARE), 5)
         else:
-            self.illegal_move_sqr = None
+            self.illegal_move_squares = None
 
         for move in self.highlighted_moves:
             from_row, from_col = chess.square_rank(move.from_square), chess.square_file(move.from_square)
@@ -286,6 +314,7 @@ class ChessEngine():
             pygame.draw.rect(screen, HIGHLIGHT_YELLOW, pygame.Rect(BOARD_OFFSET_X + to_col * SQUARE, BOARD_OFFSET_Y + (7 - to_row) * SQUARE, SQUARE, SQUARE), 5)
 
     def draw_pieces(self):
+        """Draw all pieces on the board."""
         for square in chess.SQUARES:
             piece = self.board.piece_at(square)
             if piece:
@@ -296,36 +325,33 @@ class ChessEngine():
                 screen.blit(piece_image, (x, y))
 
     def draw_game_state(self):
+        """Draw game state indicators like check, checkmate, and move notation."""
         king_square = self.board.king(self.board.turn)
         col, row = chess.square_file(king_square), 7 - chess.square_rank(king_square)
 
         if self.last_move:
-            notation = ""
-        
             from_file, from_rank = chess.square_file(self.last_move.from_square), chess.square_rank(self.last_move.from_square)
             to_file, to_rank = chess.square_file(self.last_move.to_square), chess.square_rank(self.last_move.to_square)
 
-            if self.last_move.from_square == chess.E1:
-                if self.last_move.to_square == chess.G1:
-                    notation = "w.O-O"
-                elif self.last_move.to_square == chess.C1:
-                    notation = "w.O-O-O"
-            elif self.last_move.from_square == chess.E8:
-                if self.last_move.to_square == chess.G8:
-                    notation = "b.O-O"
-                elif self.last_move.to_square == chess.C8:
-                    notation = "b.O-O-O"
+            # Determine move notation
+            if self.last_move.from_square == chess.E1 and self.last_move.to_square == chess.G1:
+                notation = "w.O-O"
+            elif self.last_move.from_square == chess.E1 and self.last_move.to_square == chess.C1:
+                notation = "w.O-O-O"
+            elif self.last_move.from_square == chess.E8 and self.last_move.to_square == chess.G8:
+                notation = "b.O-O"
+            elif self.last_move.from_square == chess.E8 and self.last_move.to_square == chess.C8:
+                notation = "b.O-O-O"
             else:
                 piece = self.board.piece_at(self.last_move.to_square)
                 piece_name = piece.symbol().upper() if piece else ""
                 if piece_name == 'P':
                     piece_name = ""
+                
+                capture_symbol = "x" if self.last_move_was_capture else ""
 
-            was_capture = self.board.is_capture(self.last_move)
-            capture_symbol = "x" if was_capture else ""
-
-            notation = f"{piece_name}{chess.square_name(self.last_move.from_square)}{capture_symbol}{chess.square_name(self.last_move.to_square)}"
-        
+                notation = f"{piece_name}{chess.square_name(self.last_move.from_square)}{capture_symbol}{chess.square_name(self.last_move.to_square)}"
+            
             # Add checkmate or check symbol
             if self.board.is_checkmate():
                 notation += "#"
@@ -335,6 +361,8 @@ class ChessEngine():
             last_move_surface = self.font.render(notation, True, TEXT_COLOR)
             last_move_rect = last_move_surface.get_rect(topleft=(WIDTH - 760, HEIGHT // 2 - 10))
             screen.blit(last_move_surface, last_move_rect)
+            
+            # Highlight last move squares
             pygame.draw.rect(
                 screen,
                 HIGHLIGHT_YELLOW,
@@ -357,7 +385,7 @@ class ChessEngine():
                 ),
                 5
             )
-
+        
         # Draw game status messages
         status_text = ""
         if self.resigned:
@@ -387,6 +415,7 @@ class ChessEngine():
             screen.blit(text_surface, text_rect)
 
     def draw(self):
+        """Main draw method that renders all game elements."""
         screen.fill(BACKGROUND)
         self.draw_board()
         self.draw_pieces()
@@ -403,6 +432,7 @@ class ChessEngine():
             self.promotion_menu.draw(screen)
     
     def reset(self):
+        """Reset the game to initial state."""
         self.board = chess.Board()
         self.selected_square = None
         self.game_over = False
@@ -413,12 +443,15 @@ class ChessEngine():
         self.board_history = [chess.Board().fen()]
         self.current_position = 0
         self.last_move = None
+        self.last_move_was_capture = False
         self.timer.reset()
         self.game_started = False
-        self.resigned = False 
+        self.resigned = False
         self.winner_by_resignation = None
+        self.highlighted_moves = []
     
     def resign_game(self):
+        """Current player resigns the game."""
         if not self.game_over and self.game_started:
             self.resigned = True
             self.game_over = True
@@ -426,25 +459,32 @@ class ChessEngine():
             self.timer.stop()
 
     def undo_move(self):
+        """Undo the last move."""
         if self.current_position > 0 and not self.promotion_menu:
             self.current_position -= 1
             self.board = chess.Board(self.board_history[self.current_position])
             self.game_over = False
-            self.selected_sqr = None
+            self.selected_square = None
+            self.highlighted_moves = []
     
     def redo_move(self):
+        """Redo a previously undone move."""
         if self.current_position + 1 < len(self.board_history) and not self.promotion_menu:
             self.current_position += 1
             self.board = chess.Board(self.board_history[self.current_position])
             self.game_over = self.board.is_game_over()
-            self.selected_sqr = None
+            self.selected_square = None
+            self.highlighted_moves = []
     
     def make_move(self, move):
+        """Execute a move if it's legal and update game state."""
         if move in self.board.legal_moves:
             if not self.game_started:
                 self.timer.start()
                 self.game_started = True
             
+            # Store capture status before making the move
+            self.last_move_was_capture = self.board.is_capture(move)
             self.board.push(move)
             self.timer.switch_player()
             self.current_position += 1
@@ -459,25 +499,24 @@ class ChessEngine():
         return False
 
     def is_promotion_move(self, from_square, to_square):
-        legal_moves = [move for move in self.board.legal_moves 
-        if move.from_square == from_square and move.to_square == to_square]
-        
+        """Check if a move from from_square to to_square is a pawn promotion."""
+        legal_moves = [move for move in self.board.legal_moves
+                       if move.from_square == from_square and move.to_square == to_square]
         return any(move.promotion for move in legal_moves)
     
     def get_square_from_pos(self, pos):
+        """Convert screen coordinates to chess square index."""
         x, y = pos
-
-        SQUARE_SIZE = 60
-        col = (x - BOARD_OFFSET_X) // SQUARE_SIZE
-        row = 7 - (y - BOARD_OFFSET_Y) // SQUARE_SIZE  
+        col = (x - BOARD_OFFSET_X) // SQUARE
+        row = 7 - (y - BOARD_OFFSET_Y) // SQUARE
         
         if col < 0 or col >= 8 or row < 0 or row >= 8:
-            return -1  
+            return None
         
-        square = row * 8 + col
-        return square
+        return row * 8 + col
     
     def handle_click(self, pos):
+        """Handle mouse click events on the board and UI."""
         if self.reset_button.is_clicked(pos):
             self.reset()
             return
@@ -490,14 +529,16 @@ class ChessEngine():
             self.redo_move()
             return
         
-        if self.resign_button.is_clicked(pos):  
+        if self.resign_button.is_clicked(pos):
             self.resign_game()
             return
 
         if self.game_over:
             return
         
-        if pos[1] < BOARD_OFFSET_Y or pos[1] >= BOARD_OFFSET_Y + BOARD_SIZE or pos[0] < BOARD_OFFSET_X or pos[0] >= BOARD_OFFSET_X + BOARD_SIZE:
+        # Check if click is within board bounds
+        if (pos[0] < BOARD_OFFSET_X or pos[0] >= BOARD_OFFSET_X + BOARD_SIZE or
+            pos[1] < BOARD_OFFSET_Y or pos[1] >= BOARD_OFFSET_Y + BOARD_SIZE):
             return
 
         if self.promotion_menu:
@@ -514,25 +555,28 @@ class ChessEngine():
             return
 
         square = self.get_square_from_pos(pos)
+        if square is None:
+            return
         
-        if self.selected_sqr is None:
+        if self.selected_square is None:
             piece = self.board.piece_at(square)
             if piece and piece.color == self.board.turn:
-                self.selected_sqr = square
+                self.selected_square = square
                 self.highlighted_moves = [move for move in self.board.legal_moves if move.from_square == square]
         else:
-            if self.is_promotion_move(self.selected_sqr, square):
-                self.pending_promotion_move = chess.Move(self.selected_sqr, square)
+            if self.is_promotion_move(self.selected_square, square):
+                self.pending_promotion_move = chess.Move(self.selected_square, square)
                 self.promotion_menu = PromotionMenu(square, self.board.turn == chess.WHITE)
             else:
-                move = chess.Move(self.selected_sqr, square)
-                if not self.make_move(move) and self.selected_sqr != square:
-                    self.illegal_move_sqr = (self.selected_sqr, square)
+                move = chess.Move(self.selected_square, square)
+                if not self.make_move(move) and self.selected_square != square:
+                    self.illegal_move_squares = (self.selected_square, square)
                     self.illegal_move_time = time.time()
-            self.selected_sqr = None
+            self.selected_square = None
             self.highlighted_moves = []
 
 def main():
+    """Main game loop."""
     game = ChessEngine()
     running = True
 
@@ -547,6 +591,7 @@ def main():
         game.draw()
         pygame.display.flip()
         clock.tick(FPS)
+    
     pygame.quit()
 
 if __name__ == "__main__":
