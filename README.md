@@ -121,10 +121,6 @@ to discuss what you would like to change.
 
 ## Future Work
 
-- Improve notation display
-  - add piece take (x)
-  - add checkmate (#)
-  - add castling (0-0-0, 0-0)
 - Add draw method
   - draw by repetition (once side has the same move as last 3 moves)
 - .......
